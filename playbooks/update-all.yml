@@ -1,0 +1,66 @@
+---
+- name: OS Updates ausführen (Debian/Ubuntu & RHEL/CentOS/Alma/Rocky)
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    do_reboot: "{{ do_reboot | default(false) }}"
+    update_mode: "{{ update_mode | default('dist') }}"
+    distro_lock_kernel: "{{ distro_lock_kernel | default(false) }}"
+    apt_cache_valid_time: "{{ apt_cache_valid_time | default(3600) }}"
+
+  pre_tasks:
+    - name: Paketcache aktualisieren (Debian/Ubuntu)
+      apt:
+        update_cache: true
+        cache_valid_time: "{{ apt_cache_valid_time }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Kernel-Pakete bei Bedarf sperren (Debian/Ubuntu)
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - "linux-image-amd64"
+        - "linux-image-generic"
+      when:
+        - ansible_os_family == "Debian"
+        - distro_lock_kernel | bool
+      ignore_errors: true
+
+  tasks:
+    - name: Distribution upgrades (Debian/Ubuntu)
+      apt:
+        upgrade: "{{ update_mode }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Update aller Pakete (RHEL/CentOS/Alma/Rocky) via yum/dnf
+      package:
+        name: "*"
+        state: latest
+      when: ansible_os_family == "RedHat"
+
+    - name: Autoremove & Autoclean (Debian/Ubuntu)
+      apt:
+        autoremove: true
+        autoclean: true
+      when: ansible_os_family == "Debian"
+
+  handlers: []
+
+  post_tasks:
+    - name: Optionaler Reboot nach Updates
+      reboot:
+        msg: "Reboot initiated by Ansible/Semaphore after updates"
+        reboot_timeout: 1800
+      when: do_reboot | bool
+
+    - name: Uptime prüfen nach Reboot
+      command: uptime -p
+      register: uptime_out
+      changed_when: false
+
+    - name: Ausgabe anzeigen
+      debug:
+        msg: "Uptime: {{ uptime_out.stdout }}"

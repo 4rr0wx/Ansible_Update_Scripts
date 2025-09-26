@@ -1,0 +1,5 @@
+{
+  "do_reboot": false,
+  "update_mode": "dist",
+  "distro_lock_kernel": false
+}

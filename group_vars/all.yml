@@ -1,0 +1,11 @@
+# Globale Standard-Variablen
+do_reboot: false
+
+# Update-Strategie (Debian/Ubuntu)
+update_mode: "dist"  # "dist" (Default). Alternative: "safe"
+
+# Kernel ggf. sperren (Debian/Ubuntu)
+distro_lock_kernel: false
+
+# Paketlisten-Cache-MaxAge (Sekunden) für apt
+apt_cache_valid_time: 3600

@@ -4,11 +4,8 @@
   become: true
   gather_facts: true
 
-  # nur feste Defaults, keine Self-Reference
+  # KEINE self-referencing vars hier!
   vars:
-    do_reboot: "{{ do_reboot | default(false) }}"
-    update_mode: "{{ update_mode | default('dist') }}"          # Debian/Ubuntu: 'dist' oder 'safe'
-    distro_lock_kernel: "{{ distro_lock_kernel | default(false) }}"
     _apt_cache_valid_time_default: 3600
 
   pre_tasks:
@@ -27,13 +24,13 @@
         - linux-image-generic
       when:
         - ansible_os_family == "Debian"
-        - distro_lock_kernel | bool
+        - (distro_lock_kernel | default(false)) | bool
       ignore_errors: true
 
   tasks:
     - name: Distribution upgrades (Debian/Ubuntu)
       apt:
-        upgrade: "{{ update_mode }}"
+        upgrade: "{{ update_mode | default('dist') }}"
       when: ansible_os_family == "Debian"
 
     - name: Update aller Pakete (RHEL/CentOS/Alma/Rocky)
@@ -53,7 +50,7 @@
       reboot:
         msg: "Reboot initiated by Ansible/Semaphore after updates"
         reboot_timeout: 1800
-      when: do_reboot | bool
+      when: (do_reboot | default(false)) | bool
 
     - name: Uptime prüfen nach Reboot
       command: uptime -p
